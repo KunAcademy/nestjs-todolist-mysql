@@ -1,3 +1,4 @@
+import { Document } from 'mongoose';
 export interface Note {
   id: number;
   title: string;
@@ -8,4 +9,11 @@ export interface NoteResInterface {
   status: number;
   message?: string;
   length?: number;
+}
+
+export interface NoteMongoInterface extends Document {
+  readonly name: string;
+  readonly description: string;
+  readonly tags: string;
+  readonly createdAt: string;
 }

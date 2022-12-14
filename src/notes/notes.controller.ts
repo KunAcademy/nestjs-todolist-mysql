@@ -1,43 +1,78 @@
 import {
-  Body,
   Controller,
-  Delete,
+  Post,
+  Res,
+  Body,
+  HttpStatus,
   Get,
   Param,
   Patch,
-  Post,
+  Delete,
 } from '@nestjs/common';
-import { ParseIntPipe } from '@nestjs/common/pipes/parse-int.pipe';
+import { NoteService } from './notes.service';
+import { CreateNoteDTO } from './note.dto';
 
-import { Note } from './note.entity';
-import { NotesService } from './notes.service';
+@Controller('note')
+export class NoteCtroller {
+  constructor(private noteService: NoteService) {}
 
-@Controller('notes')
-export class NotesController {
-  constructor(private notesService: NotesService) {}
-
-  @Get()
-  findAll() {
-    return this.notesService.getNotes();
+  @Post('/add')
+  async createANote(@Res() res, @Body() createNoteDTO: CreateNoteDTO) {
+    const note = await this.noteService.createANote(createNoteDTO);
+    return res.status(HttpStatus.CREATED).json({
+      status: 201,
+      message: 'Successful!',
+      data: note,
+    });
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id) {
-    return this.notesService.findOne(id);
+  @Get('/all')
+  async getAllNotes(@Res() res) {
+    const notes = await this.noteService.getAllNotes();
+    return res.status(HttpStatus.OK).json({
+      status: 200,
+      data: notes,
+    });
   }
 
-  @Post() create(@Body() note: Note) {
-    return this.notesService.createNote(note);
+  @Get('/:noteId')
+  async getANote(@Res() res, @Param('noteId') _id: string) {
+    const note = await this.noteService.getANote(_id);
+    if (!note)
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .join({ status: 404, error: 'Note found!' });
+    return res.status(HttpStatus.OK).join({ status: 200, data: note });
   }
 
-  @Patch(':id')
-  async editNote(@Body() note: Note, @Param('id') id: number): Promise<Note> {
-    const noteEdited = await this.notesService.editNote(id, note);
-    return noteEdited;
+  @Patch('/update/:noteId')
+  async updateCustomer(
+    @Res() res,
+    @Body() createNoteDTO: CreateNoteDTO,
+    @Param('noteId') _id: string,
+  ) {
+    const note = await this.noteService.updateANote(_id, createNoteDTO);
+    if (!note)
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .join({ status: 404, error: 'Not found!' });
+    return res.status(HttpStatus.OK).json({
+      status: 200,
+      message: 'Successfull',
+      note,
+    });
   }
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id) {
-    this.notesService.remove(id);
+  @Delete('/delete/:noteId')
+  async deleteCustomer(@Res() res, @Param('noteId') _id) {
+    const note = await this.noteService.deleteANote(_id);
+    if (!note)
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .json({ status: 404, error: 'Not found!' });
+    return res.status(HttpStatus.OK).json({
+      status: 200,
+      message: 'Successful',
+    });
   }
 }

@@ -1,59 +1,36 @@
-// This file will be responsible for providing methods that retriveing or storing data in MySQL
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Note } from './note.entity';
-import { NoteResInterface } from './note.interface';
+import { Injectable } from '@nestjs/common';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Note } from './note.interface';
+import { CreateNoteDTO } from './note.dto';
+
 @Injectable()
-export class NotesService {
-  constructor(
-    @InjectRepository(Note) private notesRepository: Repository<Note>,
-  ) {}
-  async getNotes(): Promise<NoteResInterface> {
-    const data = await this.notesRepository.find();
-    if (data) {
-      return {
-        status: 200,
-        length: data.length,
-        data: data,
-      };
-    } else {
-      return {
-        status: 400,
-        message: 'Faild to get list',
-      };
-    }
+export class NoteService {
+  constructor(@InjectModel('Note') private readonly noteModel: Model<Note>) {}
+  async createANote(createNoteDTO: CreateNoteDTO): Promise<Note> {
+    const newNote = await new this.noteModel(createNoteDTO);
+    return newNote.save();
   }
 
-  findOne(id: number): Promise<Note> {
-    return this.notesRepository.findOneBy({ id: id });
+  async getAllNotes(): Promise<Note[]> {
+    const notes = await this.noteModel.find().exec();
+    return notes;
   }
 
-  async createNote(note: Note): Promise<NoteResInterface> {
-    console.log('note:', note);
-    this.notesRepository.save(note);
-    return {
-      status: 200,
-      message: 'Create note successful',
-    };
+  async getANote(noteId): Promise<Note> {
+    const note = await this.noteModel.findById(noteId).exec();
+    return note;
   }
 
-  async remove(id: string): Promise<NoteResInterface> {
-    await this.notesRepository.delete(id);
-    return {
-      status: 200,
-      message: 'Delete note successful',
-    };
+  async updateANote(_id, createNoteDTO: CreateNoteDTO): Promise<Note> {
+    const note = await this.noteModel.findByIdAndUpdate(_id, createNoteDTO, {
+      new: true,
+    });
+    return note;
   }
 
-  async editNote(id: number, note: Note): Promise<Note> {
-    const editedNote = await this.notesRepository.findOneBy({ id: id });
-    if (!editedNote) {
-      throw new NotFoundException('Note is not found');
-    }
-    editedNote.description = note.description;
-    editedNote.title = note.title;
-    await editedNote.save();
-    return editedNote;
+  async deleteANote(_id): Promise<any> {
+    const note = await this.noteModel.findByIdAndRemove(_id);
+    return note;
   }
 }
